@@ -10,6 +10,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+
+      - name: ${{ matrix.dir.name }} - Build
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo build --verbose
+
   test:
     strategy:
       fail-fast: false
