@@ -59,7 +59,7 @@ jobs:
 
       - name: ${{ matrix.dir.name }} - Nextest
         working-directory: ${{ matrix.dir.path }}
-        run: cargo nextest run
+        run: cargo nextest run --no-tests pass
 
       # Add back when introducing sqlx
       # - name: ${{ matrix.dir.name }} - check that queries are fresh
