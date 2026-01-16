@@ -5,6 +5,22 @@ on:
     branches-ignore:
       - main
   workflow_call:
+  pull_request:
+    branches:
+      - 'main'
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+# In a situation where a PR is made, then is edited and new changes are pushed a few minutes later
+# if the previous workflow is still running, it will be cancelled.
+# The second job will be run, thus saving some CI compute resources.
+# https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
