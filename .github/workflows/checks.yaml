@@ -10,59 +10,59 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # test:
-  #   name: Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Check out repository code
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Install the Rust toolchain
-  #       uses: actions-rust-lang/setup-rust-toolchain@v1
-  #       with:
-  #         cache-workspaces: |
-  #           auth-service
-  #           app-service
-  #         components: nextest
-  #
-  #     - name: Auth Service - tests
-  #       working-directory: ./auth-service
-  #       run: cargo nextest run
-  #
-  #     - name: App Service - tests
-  #       working-directory: ./app-service
-  #       run: cargo nextest run
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
-      # - name: Auth Service - check that queries are fresh
-      #   working-directory: ./auth-service
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+          components: nextest
+
+      - name: ${{ matrix.dir.name }} - Nextest
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo nextest run
+
+      # Add back when introducing sqlx
+      # - name: ${{ matrix.dir.name }} - check that queries are fresh
+      #   working-directory: ${{ matrix.dir.path }}
       #   run: cargo sqlx prepare --workspace --check -- --all-targets
 
-      # - name: App Service - check that queries are fresh
-      #   working-directory: ./app-service
-      #   run: cargo sqlx prepare --workspace --check -- --all-targets
+  fmt:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name}} - Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-  # `fmt` container job
-  # fmt:
-  #   name: Rustfmt
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Install the Rust toolchain
-  #       uses: actions-rust-lang/setup-rust-toolchain@v1
-  #       with:
-  #         cache-workspaces: |
-  #           auth-service
-  #           app-service
-  #         components: rustfmt
-  #
-  #     - name: Auth Service - Enforce formatting
-  #       working-directory: ./auth-service
-  #       run: cargo fmt --check
-  #
-  #     - name: App Service - Enforce formatting
-  #       working-directory: ./app-service
-  #       run: cargo fmt --check
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+          components: rustfmt
+
+      - name: ${{ matrix.dir.name }} - Enforce formatting
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo fmt --check
 
   clippy:
     strategy:
