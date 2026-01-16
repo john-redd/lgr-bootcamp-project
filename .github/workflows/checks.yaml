@@ -66,6 +66,7 @@ jobs:
 
   clippy:
     strategy:
+      fail-fast: false
       matrix:
         dir:
           - name: Auth Service
@@ -89,6 +90,7 @@ jobs:
 
   coverage:
     strategy:
+      fail-fast: false
       matrix:
         dir:
           - name: Auth Service
