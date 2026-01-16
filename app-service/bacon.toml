@@ -48,7 +48,8 @@ need_stdout = true
 [jobs.nextest]
 command = [
     "cargo", "nextest", "run",
-    "--hide-progress-bar", "--failure-output", "final"
+    "--hide-progress-bar", "--failure-output", "final",
+    "--no-tests", "pass"
 ]
 need_stdout = true
 analyzer = "nextest"
@@ -113,3 +114,4 @@ allow_warnings = true
 # alt-m = "job:my-job"
 c = "job:clippy-all" # comment this to have 'c' run clippy on only the default target
 r = "job:run-long" # comment this to have 'c' run clippy on only the default target
+t = "job:nextest" # comment this to have 'c' run clippy on only the default target

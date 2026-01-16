@@ -1,0 +1,168 @@
+name: Checks
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_call:
+  pull_request:
+    branches:
+      - 'main'
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+# In a situation where a PR is made, then is edited and new changes are pushed a few minutes later
+# if the previous workflow is still running, it will be cancelled.
+# The second job will be run, thus saving some CI compute resources.
+# https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+
+      - name: ${{ matrix.dir.name }} - Build
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo build --verbose
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@cargo-nextest
+
+      - name: ${{ matrix.dir.name }} - Nextest
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo nextest run --no-tests pass
+
+      # Add back when introducing sqlx
+      # - name: ${{ matrix.dir.name }} - check that queries are fresh
+      #   working-directory: ${{ matrix.dir.path }}
+      #   run: cargo sqlx prepare --workspace --check -- --all-targets
+
+  fmt:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name}} - Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+          components: rustfmt
+
+      - name: ${{ matrix.dir.name }} - Enforce formatting
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo fmt --check
+
+  clippy:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+          components: clippy
+
+      - name: ${{ matrix.dir.name }} - Linting
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo clippy -- -D warnings
+
+  coverage:
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Code coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: ${{ matrix.dir.path }}
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: ${{ matrix.dir.name }} - Generate code coverage
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: ${{ matrix.dir.name }} - Generate report
+        working-directory: ${{ matrix.dir.path }}
+        run: cargo llvm-cov report --html --output-dir coverage
+
+      - name: ${{ matrix.dir.name }} - Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.dir.name }} - Coverage report"
+          path: ${{ matrix.dir.path }}/coverage/

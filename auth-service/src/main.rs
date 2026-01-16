@@ -1,4 +1,4 @@
-use axum::{response::Html, routing::get, serve, Router};
+use axum::{Router, http::StatusCode, response::IntoResponse, routing::get, serve};
 use tower_http::services::ServeDir;
 
 #[tokio::main]
@@ -6,7 +6,7 @@ async fn main() {
     let assets_dir = ServeDir::new("assets");
     let app = Router::new()
         .fallback_service(assets_dir)
-        .route("/hello", get(hello_handler));
+        .route("/api/v1/health", get(health_handler));
 
     // Here we are using ip 0.0.0.0 so the service is listening on all the configured network interfaces.
     // This is needed for Docker to work, which we will add later on.
@@ -14,10 +14,9 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
 
-    axum::serve(listener, app).await.unwrap();
+    serve(listener, app).await.unwrap();
 }
 
-async fn hello_handler() -> Html<&'static str> {
-    // TODO: Update this to a custom message!
-    Html("<h1>Hello, World!</h1>")
+async fn health_handler() -> impl IntoResponse {
+    (StatusCode::OK, "OK")
 }
