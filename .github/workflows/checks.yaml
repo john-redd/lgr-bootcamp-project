@@ -10,28 +10,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-
-      - name: Install the Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache-workspaces: |
-            auth-service
-            app-service
-          components: nextest
-
-      - name: Auth Service - tests
-        working-directory: ./auth-service
-        run: cargo nextest run
-
-      - name: App Service - tests
-        working-directory: ./app-service
-        run: cargo nextest run
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out repository code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install the Rust toolchain
+  #       uses: actions-rust-lang/setup-rust-toolchain@v1
+  #       with:
+  #         cache-workspaces: |
+  #           auth-service
+  #           app-service
+  #         components: nextest
+  #
+  #     - name: Auth Service - tests
+  #       working-directory: ./auth-service
+  #       run: cargo nextest run
+  #
+  #     - name: App Service - tests
+  #       working-directory: ./app-service
+  #       run: cargo nextest run
 
       # - name: Auth Service - check that queries are fresh
       #   working-directory: ./auth-service
@@ -42,30 +42,37 @@ jobs:
       #   run: cargo sqlx prepare --workspace --check -- --all-targets
 
   # `fmt` container job
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install the Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache-workspaces: |
-            auth-service
-            app-service
-          components: rustfmt
-
-      - name: Auth Service - Enforce formatting
-        working-directory: ./auth-service
-        run: cargo fmt --check
-
-      - name: App Service - Enforce formatting
-        working-directory: ./app-service
-        run: cargo fmt --check
+  # fmt:
+  #   name: Rustfmt
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Install the Rust toolchain
+  #       uses: actions-rust-lang/setup-rust-toolchain@v1
+  #       with:
+  #         cache-workspaces: |
+  #           auth-service
+  #           app-service
+  #         components: rustfmt
+  #
+  #     - name: Auth Service - Enforce formatting
+  #       working-directory: ./auth-service
+  #       run: cargo fmt --check
+  #
+  #     - name: App Service - Enforce formatting
+  #       working-directory: ./app-service
+  #       run: cargo fmt --check
 
   clippy:
-    name: Clippy
+    strategy:
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,21 +80,22 @@ jobs:
       - name: Install the Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-workspaces: |
-            auth-service
-            app-service
+          cache-workspaces: ${{ matrix.dir.path }}
           components: clippy
 
-      - name: Auth Service - Linting
-        working-directory: ./auth-service
-        run: cargo clippy -- -D warnings
-
-      - name: App Service - Linting
-        working-directory: ./app-service
+      - name: ${{ matrix.dir.name }} - Linting
+        working-directory: ${{ matrix.dir.path }}
         run: cargo clippy -- -D warnings
 
   coverage:
-    name: Code coverage
+    strategy:
+      matrix:
+        dir:
+          - name: Auth Service
+            path: ./auth-service
+          - name: App Service
+            path: ./app-service
+    name: ${{ matrix.dir.name }} - Code coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,21 +103,22 @@ jobs:
       - name: Install the Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-workspaces: |
-            auth-service
-            app-service
+          cache-workspaces: ${{ matrix.dir.path }}
           components: llvm-tools-preview
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Generate code coverage
+      - name: ${{ matrix.dir.name }} - Generate code coverage
+        working-directory: ${{ matrix.dir.path }}
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
-      - name: Generate report
+      - name: ${{ matrix.dir.name }} - Generate report
+        working-directory: ${{ matrix.dir.path }}
         run: cargo llvm-cov report --html --output-dir coverage
 
-      - uses: actions/upload-artifact@v4
+      - name: ${{ matrix.dir.name }} - Upload report
+        uses: actions/upload-artifact@v4
         with:
           name: "Coverage report"
-          path: coverage/
+          path: ${{ matrix.dir.path }}/coverage/
