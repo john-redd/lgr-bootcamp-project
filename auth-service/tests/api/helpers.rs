@@ -48,13 +48,19 @@ impl TestApp {
             .expect("failed to GET /")
     }
 
-    pub async fn post_signup(&self) -> reqwest::Response {
+    pub async fn post_signup(&self, body: Option<String>) -> reqwest::Response {
         let request_url = format!("{}/signup", self.base_url());
-        self.http_client
+
+        let mut request = self
+            .http_client
             .post(request_url)
-            .send()
-            .await
-            .expect("failed to POST /signup")
+            .header("Content-Type", "application/json");
+
+        if let Some(body) = body {
+            request = request.body(body);
+        }
+
+        request.send().await.expect("failed to POST /signup")
     }
 
     pub async fn post_login(&self) -> reqwest::Response {
