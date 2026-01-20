@@ -66,3 +66,77 @@ async fn test_given_incorrect_request_body_when_post_signup_then_422() {
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 }
+
+#[tokio::test]
+async fn test_given_invalid_email_when_post_signup_then_400() {
+    let test_app = TestApp::build().await.expect("failed to start test app");
+
+    let test_cases = vec![
+        json!({
+            "email": "john.doeexample.com",
+            "password": "password123",
+            "requires2FA": true,
+        })
+        .to_string(),
+        json!({
+            "email": "",
+            "password": "password123",
+            "requires2FA": true,
+        })
+        .to_string(),
+    ];
+
+    for test_case in test_cases {
+        let response = test_app.post_signup(Some(test_case)).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+}
+
+#[tokio::test]
+async fn test_given_invalid_password_when_post_signup_then_400() {
+    let test_app = TestApp::build().await.expect("failed to start test app");
+
+    let test_cases = vec![
+        json!({
+            "email": "john.doeexample.com",
+            "password": "1",
+            "requires2FA": true,
+        })
+        .to_string(),
+    ];
+
+    for test_case in test_cases {
+        let response = test_app.post_signup(Some(test_case)).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+}
+
+#[tokio::test]
+async fn test_given_duplicate_user_when_post_signup_then_409() {
+    let test_app = TestApp::build().await.expect("failed to start test app");
+
+    let _ = test_app
+        .post_signup(Some(
+            json!({
+                "email": "john.doe@example.com",
+                "password": "password123",
+                "requires2FA": true,
+            })
+            .to_string(),
+        ))
+        .await;
+    let response = test_app
+        .post_signup(Some(
+            json!({
+                "email": "john.doe@example.com",
+                "password": "password123",
+                "requires2FA": true,
+            })
+            .to_string(),
+        ))
+        .await;
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+}
