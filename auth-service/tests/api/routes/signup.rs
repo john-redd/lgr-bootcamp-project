@@ -3,7 +3,7 @@ use reqwest::StatusCode;
 use serde_json::{Value, json};
 
 #[tokio::test]
-async fn test_given_valid_request_body_when_post_signup_returns_200() {
+async fn test_given_valid_request_body_when_post_signup_returns_201() {
     let test_app = TestApp::build().await.expect("failed to start test app");
 
     let response = test_app
