@@ -88,7 +88,10 @@ mod tests {
         let result = store.add_user(second_user);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), UserStoreError::UserAlreadyExists));
+        assert!(matches!(
+            result.unwrap_err(),
+            UserStoreError::UserAlreadyExists
+        ));
     }
 
     #[test]
@@ -153,6 +156,9 @@ mod tests {
         let result = store.validate_user("john.doe@example.com", "password");
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), UserStoreError::InvalidCredentials));
+        assert!(matches!(
+            result.unwrap_err(),
+            UserStoreError::InvalidCredentials
+        ));
     }
 }
