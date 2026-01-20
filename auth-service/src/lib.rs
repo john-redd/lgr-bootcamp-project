@@ -7,6 +7,7 @@ use std::error::Error;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
+mod domain;
 mod routes;
 
 #[derive(Debug)]
