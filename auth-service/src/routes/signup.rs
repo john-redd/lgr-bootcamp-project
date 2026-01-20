@@ -1,4 +1,5 @@
-use axum::{Json, http::StatusCode, response::IntoResponse};
+use crate::{AppState, domain::User};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -38,6 +39,15 @@ impl SignUpErrorResponseBody {
     }
 }
 
-pub async fn post_signup(Json(_body): Json<SignUpRequestBody>) -> impl IntoResponse {
+pub async fn post_signup(
+    State(app_state): State<AppState>,
+    Json(body): Json<SignUpRequestBody>,
+) -> impl IntoResponse {
+    let user = User::new(body.email, body.password, body.requires_2fa);
+
+    let mut user_store = app_state.user_store.write().await;
+
+    user_store.add_user(user).unwrap();
+
     (StatusCode::CREATED, Json(SignUpSuccessResponseBody::new()))
 }
