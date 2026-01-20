@@ -1,13 +1,16 @@
+use crate::services::hashmap_user_store::HashmapUserStore;
 use axum::{
     Router,
     routing::{get, post},
     serve::{Serve, serve},
 };
-use std::error::Error;
-use tokio::net::TcpListener;
+use std::{error::Error, sync::Arc};
+use tokio::{net::TcpListener, sync::RwLock};
 use tower_http::services::ServeDir;
 
+mod domain;
 mod routes;
+pub mod services;
 
 #[derive(Debug)]
 pub struct Application {
@@ -15,8 +18,15 @@ pub struct Application {
     pub address: String,
 }
 
+type UserStore = Arc<RwLock<HashmapUserStore>>;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub user_store: UserStore,
+}
+
 impl Application {
-    pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let assets_dir = ServeDir::new("assets");
         let app = Router::new()
             .fallback_service(assets_dir)
@@ -28,7 +38,8 @@ impl Application {
             .route(
                 "/verify-token",
                 post(routes::verify_token::post_verify_token),
-            );
+            )
+            .with_state(app_state);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;

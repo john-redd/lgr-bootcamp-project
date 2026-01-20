@@ -1,7 +1,8 @@
 #![allow(clippy::let_underscore_future)]
 
-use authservice::Application;
-use std::error::Error;
+use authservice::{AppState, Application, services::hashmap_user_store::HashmapUserStore};
+use std::{error::Error, sync::Arc};
+use tokio::sync::RwLock;
 
 pub struct TestApp {
     address: String,
@@ -10,7 +11,11 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn build() -> Result<Self, Box<dyn Error>> {
-        let application = Application::build("127.0.0.1:0")
+        let user_store = HashmapUserStore::new();
+        let app_state = AppState {
+            user_store: Arc::new(RwLock::new(user_store)),
+        };
+        let application = Application::build(app_state, "127.0.0.1:0")
             .await
             .expect("failed to build test app");
 
