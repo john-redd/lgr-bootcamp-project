@@ -1,3 +1,4 @@
+use crate::services::hashmap_user_store::HashmapUserStore;
 use axum::{
     Router,
     routing::{get, post},
@@ -9,6 +10,7 @@ use tower_http::services::ServeDir;
 
 mod domain;
 mod routes;
+pub mod services;
 
 #[derive(Debug)]
 pub struct Application {
