@@ -21,3 +21,9 @@ variable "iam_user_name" {
   type        = string
   default     = "ecr-cicd-user"
 }
+
+variable "enable_ecs" {
+  description = "Enable ECS and ALB resources"
+  type        = bool
+  default     = true
+}

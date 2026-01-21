@@ -1,8 +1,9 @@
 resource "aws_lb" "main" {
+  count              = var.enable_ecs ? 1 : 0
   name               = "lgr-bootcamp-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
+  security_groups    = [aws_security_group.alb_sg[0].id]
   subnets            = module.vpc.public_subnets
 
   enable_deletion_protection = false
@@ -13,6 +14,7 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "app_service_tg" {
+  count       = var.enable_ecs ? 1 : 0
   name        = "app-service-tg"
   port        = 8000
   protocol    = "HTTP"
@@ -30,6 +32,7 @@ resource "aws_lb_target_group" "app_service_tg" {
 }
 
 resource "aws_lb_target_group" "auth_service_tg" {
+  count       = var.enable_ecs ? 1 : 0
   name        = "auth-service-tg"
   port        = 3000
   protocol    = "HTTP"
@@ -47,23 +50,25 @@ resource "aws_lb_target_group" "auth_service_tg" {
 }
 
 resource "aws_lb_listener" "app_listener" {
-  load_balancer_arn = aws_lb.main.arn
+  count             = var.enable_ecs ? 1 : 0
+  load_balancer_arn = aws_lb.main[0].arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_service_tg.arn
+    target_group_arn = aws_lb_target_group.app_service_tg[0].arn
   }
 }
 
 resource "aws_lb_listener" "auth_listener" {
-  load_balancer_arn = aws_lb.main.arn
+  count             = var.enable_ecs ? 1 : 0
+  load_balancer_arn = aws_lb.main[0].arn
   port              = "3000"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.auth_service_tg.arn
+    target_group_arn = aws_lb_target_group.auth_service_tg[0].arn
   }
 }
