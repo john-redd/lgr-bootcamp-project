@@ -15,3 +15,9 @@ variable "ecr_app_service_repo_name" {
   type        = string
   default     = "app-service"
 }
+
+variable "iam_user_name" {
+  description = "Name of the IAM user for ECR access"
+  type        = string
+  default     = "ecr-cicd-user"
+}
