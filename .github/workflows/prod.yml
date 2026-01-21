@@ -51,36 +51,22 @@ jobs:
           *.cache-from=type=gha
           *.cache-to=type=gha,mode=max
 
-  # deploy:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v4
-  #
-  #   - name: Login to ECR
-  #     uses: docker/login-action@v3
-  #     with:
-  #       registry: 517798649878.dkr.ecr.us-east-1.amazonaws.com
-  #       username: ${{ vars.AWS_ACCESS_KEY_ID }}
-  #       password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #
-  #   - name: Install sshpass
-  #     run: sudo apt-get install sshpass
-  #
-  #   - name: Copy compose.yml to droplet
-  #     run: sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
-  #
-  #   - name: Deploy
-  #     uses: appleboy/ssh-action@master
-  #     with:
-  #       host: ${{ vars.DROPLET_IP }}
-  #       username: root
-  #       password: ${{ secrets.DROPLET_PASSWORD }}
-  #       script: |
-  #         cd ~
-  #         export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
-  #         docker compose down
-  #         docker compose pull
-  #         docker compose up -d
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Deploy Auth Service
+      run: |
+        aws ecs update-service --cluster lgr-bootcamp-cluster --service auth-service --force-new-deployment
+
+    - name: Deploy App Service
+      run: |
+        aws ecs update-service --cluster lgr-bootcamp-cluster --service app-service --force-new-deployment
