@@ -1,4 +1,5 @@
 resource "aws_security_group" "alb_sg" {
+  count       = var.enable_ecs ? 1 : 0
   name        = "alb-sg"
   description = "Security group for Application Load Balancer"
   vpc_id      = module.vpc.vpc_id
@@ -32,6 +33,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "ecs_tasks_sg" {
+  count       = var.enable_ecs ? 1 : 0
   name        = "ecs-tasks-sg"
   description = "Security group for ECS tasks"
   vpc_id      = module.vpc.vpc_id
@@ -41,7 +43,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id]
+    security_groups = [aws_security_group.alb_sg[0].id]
   }
 
   ingress {
@@ -49,7 +51,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
     from_port       = 3000
     to_port         = 3000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id]
+    security_groups = [aws_security_group.alb_sg[0].id]
   }
 
   ingress {

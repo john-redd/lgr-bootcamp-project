@@ -1,23 +1,27 @@
 resource "aws_ecs_cluster" "main" {
-  name = "lgr-bootcamp-cluster"
+  count = var.enable_ecs ? 1 : 0
+  name  = "lgr-bootcamp-cluster"
 }
 
 resource "aws_cloudwatch_log_group" "ecs_logs" {
+  count             = var.enable_ecs ? 1 : 0
   name              = "/ecs/lgr-bootcamp"
   retention_in_days = 7
 }
 
 resource "aws_service_discovery_private_dns_namespace" "main" {
+  count       = var.enable_ecs ? 1 : 0
   name        = "local"
   description = "Service discovery namespace for local services"
   vpc         = module.vpc.vpc_id
 }
 
 resource "aws_service_discovery_service" "auth_service" {
-  name = "auth-service"
+  count = var.enable_ecs ? 1 : 0
+  name  = "auth-service"
 
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
 
     dns_records {
       ttl  = 10
@@ -31,10 +35,11 @@ resource "aws_service_discovery_service" "auth_service" {
 }
 
 resource "aws_service_discovery_service" "app_service" {
-  name = "app-service"
+  count = var.enable_ecs ? 1 : 0
+  name  = "app-service"
 
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
 
     dns_records {
       ttl  = 10
@@ -50,7 +55,8 @@ resource "aws_service_discovery_service" "app_service" {
 # --- IAM Roles ---
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecs-task-execution-role"
+  count = var.enable_ecs ? 1 : 0
+  name  = "ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -67,12 +73,14 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
+  count      = var.enable_ecs ? 1 : 0
+  role       = aws_iam_role.ecs_task_execution_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name = "ecs-task-role"
+  count = var.enable_ecs ? 1 : 0
+  name  = "ecs-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -91,13 +99,14 @@ resource "aws_iam_role" "ecs_task_role" {
 # --- Task Definitions ---
 
 resource "aws_ecs_task_definition" "auth_service" {
+  count                    = var.enable_ecs ? 1 : 0
   family                   = "auth-service"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
   memory                   = 512
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role[0].arn
+  task_role_arn            = aws_iam_role.ecs_task_role[0].arn
 
   container_definitions = jsonencode([
     {
@@ -114,7 +123,7 @@ resource "aws_ecs_task_definition" "auth_service" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs[0].name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "auth-service"
         }
@@ -124,13 +133,14 @@ resource "aws_ecs_task_definition" "auth_service" {
 }
 
 resource "aws_ecs_task_definition" "app_service" {
+  count                    = var.enable_ecs ? 1 : 0
   family                   = "app-service"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
   memory                   = 512
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role[0].arn
+  task_role_arn            = aws_iam_role.ecs_task_role[0].arn
 
   container_definitions = jsonencode([
     {
@@ -147,7 +157,7 @@ resource "aws_ecs_task_definition" "app_service" {
       environment = [
         {
           name  = "AUTH_SERVICE_IP"
-          value = aws_lb.main.dns_name
+          value = aws_lb.main[0].dns_name
         },
         {
           name  = "AUTH_SERVICE_HOST_NAME"
@@ -157,7 +167,7 @@ resource "aws_ecs_task_definition" "app_service" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs[0].name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "app-service"
         }
@@ -169,49 +179,51 @@ resource "aws_ecs_task_definition" "app_service" {
 # --- Services ---
 
 resource "aws_ecs_service" "auth_service" {
+  count           = var.enable_ecs ? 1 : 0
   name            = "auth-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.auth_service.arn
+  cluster         = aws_ecs_cluster.main[0].id
+  task_definition = aws_ecs_task_definition.auth_service[0].arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets          = module.vpc.public_subnets
-    security_groups  = [aws_security_group.ecs_tasks_sg.id]
+    security_groups  = [aws_security_group.ecs_tasks_sg[0].id]
     assign_public_ip = true
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.auth_service_tg.arn
+    target_group_arn = aws_lb_target_group.auth_service_tg[0].arn
     container_name   = "auth-service"
     container_port   = 3000
   }
 
   service_registries {
-    registry_arn = aws_service_discovery_service.auth_service.arn
+    registry_arn = aws_service_discovery_service.auth_service[0].arn
   }
 }
 
 resource "aws_ecs_service" "app_service" {
+  count           = var.enable_ecs ? 1 : 0
   name            = "app-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app_service.arn
+  cluster         = aws_ecs_cluster.main[0].id
+  task_definition = aws_ecs_task_definition.app_service[0].arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets          = module.vpc.public_subnets
-    security_groups  = [aws_security_group.ecs_tasks_sg.id]
+    security_groups  = [aws_security_group.ecs_tasks_sg[0].id]
     assign_public_ip = true
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.app_service_tg.arn
+    target_group_arn = aws_lb_target_group.app_service_tg[0].arn
     container_name   = "app-service"
     container_port   = 8000
   }
 
   service_registries {
-    registry_arn = aws_service_discovery_service.app_service.arn
+    registry_arn = aws_service_discovery_service.app_service[0].arn
   }
 }
