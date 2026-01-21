@@ -63,6 +63,17 @@ resource "aws_iam_policy" "ecr_push_pull_policy" {
           aws_ecr_repository.auth_service_repo.arn,
           aws_ecr_repository.app_service_repo.arn
         ]
+      },
+      {
+        Sid    = "AllowUpdateService"
+        Effect = "Allow"
+        Action = [
+          "ecs:UpdateService"
+        ]
+        Resource = [
+          aws_ecs_service.auth_service.id,
+          aws_ecs_service.app_service.id
+        ]
       }
     ]
   })
