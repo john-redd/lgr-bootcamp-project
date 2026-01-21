@@ -41,7 +41,7 @@ jobs:
         password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Build and push Docker images
-      uses: docker/bake-action@v3.6.0
+      uses: docker/bake-action@v6
       with:
         push: true
         files: |
