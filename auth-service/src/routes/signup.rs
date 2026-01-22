@@ -1,4 +1,4 @@
-use crate::{AppState, domain::User};
+use crate::{AppState, domain::User, services::hashmap_user_store::UserStoreError};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
@@ -42,12 +42,39 @@ impl SignUpErrorResponseBody {
 pub async fn post_signup(
     State(app_state): State<AppState>,
     Json(body): Json<SignUpRequestBody>,
-) -> impl IntoResponse {
-    let user = User::new(body.email, body.password, body.requires_2fa);
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let user = match User::parse(body.email, body.password, body.requires_2fa) {
+        Ok(user) => user,
+        Err(e) => {
+            return Err((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(SignUpErrorResponseBody::new(e.to_string())),
+            ));
+        }
+    };
 
     let mut user_store = app_state.user_store.write().await;
 
-    user_store.add_user(user).unwrap();
+    let add_user_result = user_store.add_user(user);
 
-    (StatusCode::CREATED, Json(SignUpSuccessResponseBody::new()))
+    if add_user_result.is_err() {
+        match add_user_result.err() {
+            Some(UserStoreError::UserAlreadyExists) => {
+                return Err((
+                    StatusCode::CONFLICT,
+                    Json(SignUpErrorResponseBody::new(
+                        "Email already exists.".to_string(),
+                    )),
+                ));
+            }
+            None | Some(_) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(SignUpErrorResponseBody::new("Unexpected error".to_string())),
+                ));
+            }
+        }
+    }
+
+    Ok((StatusCode::CREATED, Json(SignUpSuccessResponseBody::new())))
 }

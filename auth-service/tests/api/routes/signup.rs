@@ -68,7 +68,7 @@ async fn test_given_incorrect_request_body_when_post_signup_then_422() {
 }
 
 #[tokio::test]
-async fn test_given_invalid_email_when_post_signup_then_400() {
+async fn test_given_invalid_email_when_post_signup_then_422() {
     let test_app = TestApp::build().await.expect("failed to start test app");
 
     let test_cases = vec![
@@ -89,12 +89,12 @@ async fn test_given_invalid_email_when_post_signup_then_400() {
     for test_case in test_cases {
         let response = test_app.post_signup(Some(test_case)).await;
 
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 }
 
 #[tokio::test]
-async fn test_given_invalid_password_when_post_signup_then_400() {
+async fn test_given_invalid_password_when_post_signup_then_422() {
     let test_app = TestApp::build().await.expect("failed to start test app");
 
     let test_cases = vec![
@@ -109,7 +109,7 @@ async fn test_given_invalid_password_when_post_signup_then_400() {
     for test_case in test_cases {
         let response = test_app.post_signup(Some(test_case)).await;
 
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 }
 
