@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     domain::{User, errors::ErrorResponse},
-    services::hashmap_user_store::UserStoreError,
+    services::UserStoreError,
 };
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
@@ -46,7 +46,7 @@ pub async fn post_signup(
 
     let mut user_store = app_state.user_store.write().await;
 
-    let add_user_result = user_store.add_user(user);
+    let add_user_result = user_store.add_user(user).await;
 
     if add_user_result.is_err() {
         match add_user_result.err() {

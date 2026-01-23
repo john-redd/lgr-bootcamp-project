@@ -1,4 +1,4 @@
-use crate::services::hashmap_user_store::HashmapUserStore;
+use crate::services::UserStore;
 use axum::{
     Router,
     routing::{get, post},
@@ -18,11 +18,9 @@ pub struct Application {
     pub address: String,
 }
 
-type UserStore = Arc<RwLock<HashmapUserStore>>;
-
 #[derive(Clone)]
 pub struct AppState {
-    pub user_store: UserStore,
+    pub user_store: Arc<RwLock<dyn UserStore>>,
 }
 
 impl Application {
