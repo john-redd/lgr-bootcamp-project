@@ -1,4 +1,8 @@
-use crate::{AppState, domain::User, services::hashmap_user_store::UserStoreError};
+use crate::{
+    AppState,
+    domain::{User, errors::ErrorResponse},
+    services::hashmap_user_store::UserStoreError,
+};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
@@ -26,19 +30,6 @@ impl SignUpSuccessResponseBody {
     }
 }
 
-#[allow(unused)]
-#[derive(Serialize, Debug)]
-pub struct SignUpErrorResponseBody {
-    error: String,
-}
-
-impl SignUpErrorResponseBody {
-    #[allow(unused)]
-    fn new(error: String) -> Self {
-        Self { error }
-    }
-}
-
 pub async fn post_signup(
     State(app_state): State<AppState>,
     Json(body): Json<SignUpRequestBody>,
@@ -46,9 +37,9 @@ pub async fn post_signup(
     let user = match User::parse(body.email, body.password, body.requires_2fa) {
         Ok(user) => user,
         Err(e) => {
-            return Err((
+            return Err(ErrorResponse::new(
                 StatusCode::UNPROCESSABLE_ENTITY,
-                Json(SignUpErrorResponseBody::new(e.to_string())),
+                e.to_string(),
             ));
         }
     };
@@ -60,17 +51,15 @@ pub async fn post_signup(
     if add_user_result.is_err() {
         match add_user_result.err() {
             Some(UserStoreError::UserAlreadyExists) => {
-                return Err((
+                return Err(ErrorResponse::new(
                     StatusCode::CONFLICT,
-                    Json(SignUpErrorResponseBody::new(
-                        "Email already exists.".to_string(),
-                    )),
+                    "Email already exists.".to_string(),
                 ));
             }
             None | Some(_) => {
-                return Err((
+                return Err(ErrorResponse::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(SignUpErrorResponseBody::new("Unexpected error".to_string())),
+                    "Unexpected error".to_string(),
                 ));
             }
         }

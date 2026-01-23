@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+pub mod errors;
+
 #[derive(Debug, Clone)]
 pub struct User {
     pub email: String,
