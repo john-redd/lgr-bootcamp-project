@@ -59,11 +59,12 @@ mod tests {
     #[test]
     fn test_add_user() {
         let mut store = HashmapUserStore::new();
-        let user = User::new(
+        let user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
+        )
+        .unwrap();
 
         let result = store.add_user(user);
 
@@ -73,16 +74,18 @@ mod tests {
     #[test]
     fn test_add_user_fails_if_same_email_is_added_twice() {
         let mut store = HashmapUserStore::new();
-        let user = User::new(
+        let user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
-        let second_user = User::new(
+        )
+        .unwrap();
+        let second_user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
+        )
+        .unwrap();
 
         let _ = store.add_user(user);
         let result = store.add_user(second_user);
@@ -97,11 +100,12 @@ mod tests {
     #[test]
     fn test_get_user() {
         let mut store = HashmapUserStore::new();
-        let user = User::new(
+        let user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
+        )
+        .unwrap();
 
         let _ = store.add_user(user);
         let result = store.get_user("john.doe@example.com");
@@ -121,11 +125,12 @@ mod tests {
     #[test]
     fn test_validate_user() {
         let mut store = HashmapUserStore::new();
-        let user = User::new(
+        let user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
+        )
+        .unwrap();
 
         let _ = store.add_user(user);
         let result = store.validate_user("john.doe@example.com", "password123");
@@ -146,11 +151,12 @@ mod tests {
     #[test]
     fn test_validate_user_fails_if_password_is_incorrect() {
         let mut store = HashmapUserStore::new();
-        let user = User::new(
+        let user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        );
+        )
+        .unwrap();
 
         let _ = store.add_user(user);
         let result = store.validate_user("john.doe@example.com", "password");
