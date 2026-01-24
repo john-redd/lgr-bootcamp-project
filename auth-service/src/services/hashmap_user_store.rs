@@ -78,12 +78,14 @@ mod tests {
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        ).unwrap();
+        )
+        .unwrap();
         let second_user = User::parse(
             "john.doe@example.com".to_string(),
             "password123".to_string(),
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         let _ = store.add_user(user);
         let result = store.add_user(second_user);
