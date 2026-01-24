@@ -10,7 +10,7 @@ async fn test_given_valid_request_body_when_post_signup_returns_201() {
         .post_signup(Some(
             json!({
                 "email": "john.doe@example.com",
-                "password": "password123",
+                "password": "password123!",
                 "requires2FA": false
             })
             .to_string(),
@@ -40,7 +40,7 @@ async fn test_given_incorrect_request_body_when_post_signup_then_422() {
     let test_cases = vec![
         json!({
             "email": "john.doe@example.com",
-            "password": "password123",
+            "password": "password123!",
             "requires2FA": "true",
         })
         .to_string(),
@@ -50,12 +50,12 @@ async fn test_given_incorrect_request_body_when_post_signup_then_422() {
         .to_string(),
         json!({
             "email": "john.doe@example.com",
-            "password": "password123",
+            "password": "password123!",
         })
         .to_string(),
         json!({
             "email": "john.doe@example.com",
-            "pwd": "password123",
+            "pwd": "password123!",
         })
         .to_string(),
     ];
@@ -74,13 +74,13 @@ async fn test_given_invalid_email_when_post_signup_then_422() {
     let test_cases = vec![
         json!({
             "email": "john.doeexample.com",
-            "password": "password123",
+            "password": "password123!",
             "requires2FA": true,
         })
         .to_string(),
         json!({
             "email": "",
-            "password": "password123",
+            "password": "password123!",
             "requires2FA": true,
         })
         .to_string(),
@@ -121,7 +121,7 @@ async fn test_given_duplicate_user_when_post_signup_then_409() {
         .post_signup(Some(
             json!({
                 "email": "john.doe@example.com",
-                "password": "password123",
+                "password": "password123!",
                 "requires2FA": true,
             })
             .to_string(),
@@ -131,7 +131,7 @@ async fn test_given_duplicate_user_when_post_signup_then_409() {
         .post_signup(Some(
             json!({
                 "email": "john.doe@example.com",
-                "password": "password123",
+                "password": "password123!",
                 "requires2FA": true,
             })
             .to_string(),

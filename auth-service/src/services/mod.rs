@@ -1,4 +1,6 @@
-use crate::domain::User;
+use crate::domain::email::Email;
+use crate::domain::password::Password;
+use crate::domain::user::User;
 
 pub mod hashmap_user_store;
 
@@ -14,7 +16,8 @@ pub enum UserStoreError {
 pub trait UserStore: Send + Sync {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
 
-    async fn get_user(&self, email: &str) -> Result<User, UserStoreError>;
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError>;
 
-    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError>;
+    async fn validate_user(&self, email: &Email, password: &Password)
+    -> Result<(), UserStoreError>;
 }
