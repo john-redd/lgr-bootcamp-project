@@ -15,6 +15,12 @@ impl Display for ParseEmailError {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Email(String);
 
+impl Display for Email {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl Email {
     pub fn parse(email: &str) -> Result<Self, ParseEmailError> {
         if !email.validate_email() {

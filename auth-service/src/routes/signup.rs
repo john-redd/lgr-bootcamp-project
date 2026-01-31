@@ -6,11 +6,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub struct SignUpRequestBody {
-    #[allow(unused)]
     email: String,
-    #[allow(unused)]
     password: String,
-    #[allow(unused)]
     #[serde(rename = "requires2FA")]
     requires_2fa: bool,
 }
@@ -42,9 +39,7 @@ pub async fn post_signup(
         }
     };
 
-    let mut user_store = app_state.user_store.write().await;
-
-    let add_user_result = user_store.add_user(user).await;
+    let add_user_result = app_state.user_store.add_user(user).await;
 
     if add_user_result.is_err() {
         match add_user_result.err() {

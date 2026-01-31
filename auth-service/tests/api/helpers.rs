@@ -1,8 +1,9 @@
 #![allow(clippy::let_underscore_future)]
 
 use authservice::{AppState, Application, services::hashmap_user_store::HashmapUserStore};
+use reqwest::header::CONTENT_TYPE;
+use serde::Serialize;
 use std::{error::Error, sync::Arc};
-use tokio::sync::RwLock;
 
 pub struct TestApp {
     address: String,
@@ -13,7 +14,7 @@ impl TestApp {
     pub async fn build() -> Result<Self, Box<dyn Error>> {
         let user_store = HashmapUserStore::new();
         let app_state = AppState {
-            user_store: Arc::new(RwLock::new(user_store)),
+            user_store: Arc::new(user_store),
         };
         let application = Application::build(app_state, "127.0.0.1:0")
             .await
@@ -53,25 +54,30 @@ impl TestApp {
             .expect("failed to GET /")
     }
 
-    pub async fn post_signup(&self, body: Option<String>) -> reqwest::Response {
+    pub async fn post_signup<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/signup", self.base_url());
 
-        let mut request = self
-            .http_client
+        self.http_client
             .post(request_url)
-            .header("Content-Type", "application/json");
-
-        if let Some(body) = body {
-            request = request.body(body);
-        }
-
-        request.send().await.expect("failed to POST /signup")
+            .header("Content-Type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to POST /signup")
     }
 
-    pub async fn post_login(&self) -> reqwest::Response {
+    pub async fn post_login<Body>(&self, request_body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/login", self.base_url());
         self.http_client
             .post(request_url)
+            .header(CONTENT_TYPE, "application/json")
+            .json(request_body)
             .send()
             .await
             .expect("failed to POST /login")

@@ -5,7 +5,7 @@ use axum::{
     serve::{Serve, serve},
 };
 use std::{error::Error, sync::Arc};
-use tokio::{net::TcpListener, sync::RwLock};
+use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
 mod domain;
@@ -20,7 +20,7 @@ pub struct Application {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub user_store: Arc<RwLock<dyn UserStore>>,
+    pub user_store: Arc<dyn UserStore>,
 }
 
 impl Application {
