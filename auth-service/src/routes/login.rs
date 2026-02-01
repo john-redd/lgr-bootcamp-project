@@ -1,9 +1,12 @@
 use crate::{
     AppState,
-    domain::{email::Email, errors::ErrorResponse, password::Password},
+    domain::{
+        email::Email, errors::ErrorResponse, password::Password, utils::auth::generate_auth_cookie,
+    },
     services::UserStoreError,
 };
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -12,8 +15,10 @@ pub struct LoginRequestBody {
     password: String,
 }
 
+#[axum::debug_handler]
 pub async fn post_login(
     State(app_state): State<AppState>,
+    jar: CookieJar,
     Json(body): Json<LoginRequestBody>,
 ) -> impl IntoResponse {
     let email = match Email::parse(&body.email) {
@@ -51,5 +56,16 @@ pub async fn post_login(
         }
     }
 
-    StatusCode::OK.into_response()
+    let cookie = match generate_auth_cookie(&email) {
+        Ok(cookie) => cookie,
+        Err(_e) => {
+            return ErrorResponse::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Unexpected error, please try again later.".to_string(),
+            )
+            .into_response();
+        }
+    };
+
+    (jar.add(cookie), StatusCode::OK).into_response()
 }

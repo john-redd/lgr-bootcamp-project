@@ -11,6 +11,7 @@ use tower_http::services::ServeDir;
 mod domain;
 mod routes;
 pub mod services;
+pub use domain::utils::constants;
 
 #[derive(Debug)]
 pub struct Application {

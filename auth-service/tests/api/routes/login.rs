@@ -1,4 +1,5 @@
 use crate::helpers::TestApp;
+use authservice::constants::JWT_COOKIE_NAME;
 use fake::Fake;
 use fake::faker::internet::raw::SafeEmail;
 use fake::locales::EN;
@@ -89,6 +90,7 @@ async fn test_given_invalid_credentials_when_post_login_then_401() {
     let valid_user = json!({
         "email":  correct_email,
         "password": correct_password,
+        "requires2FA": false,
     });
 
     let _ = test_app.post_signup(&valid_user).await;
@@ -120,4 +122,36 @@ async fn test_given_invalid_credentials_when_post_login_then_401() {
             "Invalid credentials."
         );
     }
+}
+
+#[tokio::test]
+async fn test_given_valid_credentials_when_post_login_then_200_and_cookie_set() {
+    let test_app = TestApp::build().await.expect("failed to start test app");
+
+    let correct_email: String = SafeEmail(EN).fake();
+    let correct_password = "Password123!";
+
+    let _ = test_app
+        .post_signup(&json!({
+            "email":  correct_email,
+            "password": correct_password,
+            "requires2FA": false,
+        }))
+        .await;
+
+    let response = test_app
+        .post_login(&json!({
+            "email":  correct_email,
+            "password": correct_password,
+        }))
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .expect("No auth cookie found.");
+
+    assert!(!auth_cookie.value().is_empty());
 }
