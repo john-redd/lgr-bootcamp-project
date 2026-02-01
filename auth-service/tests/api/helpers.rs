@@ -110,10 +110,15 @@ impl TestApp {
             .expect("failed to POST /logout")
     }
 
-    pub async fn post_verify_token(&self) -> reqwest::Response {
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/verify-token", self.base_url());
         self.http_client
             .post(request_url)
+            .header(CONTENT_TYPE, "application/json")
+            .json(body)
             .send()
             .await
             .expect("failed to POST /verify-token")
