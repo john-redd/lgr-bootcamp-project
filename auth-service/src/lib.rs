@@ -1,12 +1,13 @@
 use crate::services::UserStore;
 use axum::{
     Router,
+    http::Method,
     routing::{get, post},
     serve::{Serve, serve},
 };
 use std::{error::Error, sync::Arc};
 use tokio::net::TcpListener;
-use tower_http::services::ServeDir;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 mod domain;
 mod routes;
@@ -26,6 +27,11 @@ pub struct AppState {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+        let cors_policy = CorsLayer::new()
+            .allow_methods([Method::GET, Method::POST])
+            .allow_credentials(true)
+            .allow_origin(["http://localhost:8000".parse()?]);
+
         let assets_dir = ServeDir::new("assets");
         let app = Router::new()
             .fallback_service(assets_dir)
@@ -38,7 +44,8 @@ impl Application {
                 "/verify-token",
                 post(routes::verify_token::post_verify_token),
             )
-            .with_state(app_state);
+            .with_state(app_state)
+            .layer(cors_policy);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;

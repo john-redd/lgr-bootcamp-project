@@ -1,13 +1,16 @@
 #![allow(clippy::let_underscore_future)]
 
-use authservice::{AppState, Application, services::hashmap_user_store::HashmapUserStore};
-use reqwest::header::CONTENT_TYPE;
+use authservice::{
+    AppState, Application, constants::test, services::hashmap_user_store::HashmapUserStore,
+};
+use reqwest::{cookie::Jar, header::CONTENT_TYPE};
 use serde::Serialize;
 use std::{error::Error, sync::Arc};
 
 pub struct TestApp {
     address: String,
     http_client: reqwest::Client,
+    pub cookie_jar: Arc<Jar>,
 }
 
 impl TestApp {
@@ -16,7 +19,7 @@ impl TestApp {
         let app_state = AppState {
             user_store: Arc::new(user_store),
         };
-        let application = Application::build(app_state, "127.0.0.1:0")
+        let application = Application::build(app_state, test::APP_ADDRESS)
             .await
             .expect("failed to build test app");
 
@@ -24,9 +27,15 @@ impl TestApp {
 
         let _ = tokio::spawn(application.run());
 
+        let jar = Arc::new(Jar::default());
+
         let test_app = TestApp {
             address,
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .cookie_provider(jar.clone())
+                .build()
+                .unwrap(),
+            cookie_jar: jar,
         };
 
         Ok(test_app)
