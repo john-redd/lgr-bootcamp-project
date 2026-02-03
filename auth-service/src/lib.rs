@@ -1,4 +1,4 @@
-use crate::services::UserStore;
+use crate::services::{BannedTokenStore, UserStore};
 use axum::{
     Router,
     http::Method,
@@ -23,6 +23,7 @@ pub struct Application {
 #[derive(Clone)]
 pub struct AppState {
     pub user_store: Arc<dyn UserStore>,
+    pub banned_token_store: Arc<dyn BannedTokenStore>,
 }
 
 impl Application {

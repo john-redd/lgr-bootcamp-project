@@ -1,7 +1,12 @@
 #![allow(clippy::let_underscore_future)]
 
 use authservice::{
-    AppState, Application, constants::test, services::hashmap_user_store::HashmapUserStore,
+    AppState, Application,
+    constants::test,
+    services::{
+        BannedTokenStore, hashmap_user_store::HashmapUserStore,
+        hashset_banned_token_store::HashSetBannedTokenStore,
+    },
 };
 use reqwest::{cookie::Jar, header::CONTENT_TYPE};
 use serde::Serialize;
@@ -11,13 +16,16 @@ pub struct TestApp {
     address: String,
     http_client: reqwest::Client,
     pub cookie_jar: Arc<Jar>,
+    banned_token_store: Arc<dyn BannedTokenStore>,
 }
 
 impl TestApp {
     pub async fn build() -> Result<Self, Box<dyn Error>> {
         let user_store = HashmapUserStore::new();
+        let banned_token_store = Arc::new(HashSetBannedTokenStore::new());
         let app_state = AppState {
             user_store: Arc::new(user_store),
+            banned_token_store: banned_token_store.clone(),
         };
         let application = Application::build(app_state, test::APP_ADDRESS)
             .await
@@ -36,6 +44,7 @@ impl TestApp {
                 .build()
                 .unwrap(),
             cookie_jar: jar,
+            banned_token_store: banned_token_store.clone(),
         };
 
         Ok(test_app)
@@ -122,5 +131,9 @@ impl TestApp {
             .send()
             .await
             .expect("failed to POST /verify-token")
+    }
+
+    pub async fn check_banned_token_store(&self, token: &str) -> Option<()> {
+        self.banned_token_store.check_token(token).await
     }
 }

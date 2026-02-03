@@ -21,20 +21,35 @@ async fn test_logout_endpoint_returns_200() {
         }))
         .await;
 
-    let _ = test_app
+    let login_response = test_app
         .post_login(&json!({
             "email":  correct_email,
             "password": correct_password,
         }))
         .await;
 
+    let login_response_cookie = login_response
+        .cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .expect("failed to get login cookie");
+    let login_response_token = login_response_cookie.value();
+
     let response = test_app.post_logout().await;
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let cookie = response.cookies().find(|c| c.name() == JWT_COOKIE_NAME).unwrap();
+    let cookie = response
+        .cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .unwrap();
 
     assert!(cookie.value().is_empty());
+
+    let banned_token_store_check = test_app
+        .check_banned_token_store(login_response_token)
+        .await;
+
+    assert!(banned_token_store_check.is_some())
 }
 
 #[tokio::test]

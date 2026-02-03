@@ -65,6 +65,47 @@ async fn test_given_malformed_payload_when_post_verify_token_then_401() {
     for token in test_cases {
         let response = test_app.post_verify_token(&token).await;
 
-        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY, "Failed POST /verify-token with payload {token}");
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "Failed POST /verify-token with payload {token}"
+        );
     }
+}
+
+#[tokio::test]
+async fn test_given_revoked_token_when_post_verify_token_then_401() {
+    let test_app = TestApp::build().await.expect("failed to start test app");
+
+    let correct_email: String = SafeEmail(EN).fake();
+    let correct_password = "Password123!";
+
+    let _ = test_app
+        .post_signup(&json!({
+            "email":  correct_email,
+            "password": correct_password,
+            "requires2FA": false,
+        }))
+        .await;
+
+    // Get token
+    let login_response = test_app
+        .post_login(&json!({
+            "email":  correct_email,
+            "password": correct_password,
+        }))
+        .await;
+
+    let cookie = login_response
+        .cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .expect("failed to get find jwt cookie on login response");
+
+    let token = cookie.value();
+
+    let _ = test_app.post_logout().await;
+
+    let response = test_app.post_verify_token(&json!({ "token": token })).await;
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
