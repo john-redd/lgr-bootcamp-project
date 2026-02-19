@@ -15,7 +15,8 @@ pub async fn post_verify_token(
     Json(body): Json<VerifyTokenRequestBody>,
 ) -> impl IntoResponse {
     if (app_state.banned_token_store.check_token(&body.token).await).is_some() {
-        return ErrorResponse::new(StatusCode::UNAUTHORIZED, "Revoked token.".to_string()).into_response()
+        return ErrorResponse::new(StatusCode::UNAUTHORIZED, "Revoked token.".to_string())
+            .into_response();
     };
 
     match validate_token(&body.token).await {
