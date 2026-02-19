@@ -1,14 +1,21 @@
-use authservice::{AppState, Application, services::hashmap_user_store::HashmapUserStore};
+use authservice::{
+    AppState, Application,
+    constants::prod,
+    services::{
+        hashmap_user_store::HashmapUserStore, hashset_banned_token_store::HashSetBannedTokenStore,
+    },
+};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 #[tokio::main]
 async fn main() {
     let user_store = HashmapUserStore::new();
+    let banned_token_store = HashSetBannedTokenStore::new();
     let app_state = AppState {
-        user_store: Arc::new(RwLock::new(user_store)),
+        user_store: Arc::new(user_store),
+        banned_token_store: Arc::new(banned_token_store),
     };
-    let application = Application::build(app_state, "0.0.0.0:3000")
+    let application = Application::build(app_state, prod::APP_ADDRESS)
         .await
         .expect("failed to build app");
 

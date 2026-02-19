@@ -1,21 +1,33 @@
 #![allow(clippy::let_underscore_future)]
 
-use authservice::{AppState, Application, services::hashmap_user_store::HashmapUserStore};
+use authservice::{
+    AppState, Application,
+    constants::test,
+    services::{
+        BannedTokenStore, hashmap_user_store::HashmapUserStore,
+        hashset_banned_token_store::HashSetBannedTokenStore,
+    },
+};
+use reqwest::{cookie::Jar, header::CONTENT_TYPE};
+use serde::Serialize;
 use std::{error::Error, sync::Arc};
-use tokio::sync::RwLock;
 
 pub struct TestApp {
     address: String,
     http_client: reqwest::Client,
+    pub cookie_jar: Arc<Jar>,
+    banned_token_store: Arc<dyn BannedTokenStore>,
 }
 
 impl TestApp {
     pub async fn build() -> Result<Self, Box<dyn Error>> {
         let user_store = HashmapUserStore::new();
+        let banned_token_store = Arc::new(HashSetBannedTokenStore::new());
         let app_state = AppState {
-            user_store: Arc::new(RwLock::new(user_store)),
+            user_store: Arc::new(user_store),
+            banned_token_store: banned_token_store.clone(),
         };
-        let application = Application::build(app_state, "127.0.0.1:0")
+        let application = Application::build(app_state, test::APP_ADDRESS)
             .await
             .expect("failed to build test app");
 
@@ -23,9 +35,16 @@ impl TestApp {
 
         let _ = tokio::spawn(application.run());
 
+        let jar = Arc::new(Jar::default());
+
         let test_app = TestApp {
             address,
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .cookie_provider(jar.clone())
+                .build()
+                .unwrap(),
+            cookie_jar: jar,
+            banned_token_store: banned_token_store.clone(),
         };
 
         Ok(test_app)
@@ -53,25 +72,30 @@ impl TestApp {
             .expect("failed to GET /")
     }
 
-    pub async fn post_signup(&self, body: Option<String>) -> reqwest::Response {
+    pub async fn post_signup<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/signup", self.base_url());
 
-        let mut request = self
-            .http_client
+        self.http_client
             .post(request_url)
-            .header("Content-Type", "application/json");
-
-        if let Some(body) = body {
-            request = request.body(body);
-        }
-
-        request.send().await.expect("failed to POST /signup")
+            .header("Content-Type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to POST /signup")
     }
 
-    pub async fn post_login(&self) -> reqwest::Response {
+    pub async fn post_login<Body>(&self, request_body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/login", self.base_url());
         self.http_client
             .post(request_url)
+            .header(CONTENT_TYPE, "application/json")
+            .json(request_body)
             .send()
             .await
             .expect("failed to POST /login")
@@ -95,12 +119,21 @@ impl TestApp {
             .expect("failed to POST /logout")
     }
 
-    pub async fn post_verify_token(&self) -> reqwest::Response {
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
         let request_url = format!("{}/verify-token", self.base_url());
         self.http_client
             .post(request_url)
+            .header(CONTENT_TYPE, "application/json")
+            .json(body)
             .send()
             .await
             .expect("failed to POST /verify-token")
+    }
+
+    pub async fn check_banned_token_store(&self, token: &str) -> Option<()> {
+        self.banned_token_store.check_token(token).await
     }
 }

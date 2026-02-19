@@ -1,16 +1,18 @@
-use crate::services::UserStore;
+use crate::services::{BannedTokenStore, UserStore};
 use axum::{
     Router,
+    http::Method,
     routing::{get, post},
     serve::{Serve, serve},
 };
 use std::{error::Error, sync::Arc};
-use tokio::{net::TcpListener, sync::RwLock};
-use tower_http::services::ServeDir;
+use tokio::net::TcpListener;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 mod domain;
 mod routes;
 pub mod services;
+pub use domain::utils::constants;
 
 #[derive(Debug)]
 pub struct Application {
@@ -20,11 +22,17 @@ pub struct Application {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub user_store: Arc<RwLock<dyn UserStore>>,
+    pub user_store: Arc<dyn UserStore>,
+    pub banned_token_store: Arc<dyn BannedTokenStore>,
 }
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+        let cors_policy = CorsLayer::new()
+            .allow_methods([Method::GET, Method::POST])
+            .allow_credentials(true)
+            .allow_origin(["http://localhost:8000".parse()?]);
+
         let assets_dir = ServeDir::new("assets");
         let app = Router::new()
             .fallback_service(assets_dir)
@@ -37,7 +45,8 @@ impl Application {
                 "/verify-token",
                 post(routes::verify_token::post_verify_token),
             )
-            .with_state(app_state);
+            .with_state(app_state)
+            .layer(cors_policy);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;
