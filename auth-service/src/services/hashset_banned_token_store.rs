@@ -14,6 +14,12 @@ impl HashSetBannedTokenStore {
     }
 }
 
+impl Default for HashSetBannedTokenStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait::async_trait]
 impl BannedTokenStore for HashSetBannedTokenStore {
     async fn add_token(&self, token: &str) -> Result<(), TokenStoreError> {
